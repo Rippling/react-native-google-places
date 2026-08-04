@@ -540,6 +540,8 @@ declare module "react-native-google-places" {
       placeID: string, placeFields: K[]
     ): Promise<Pick<GMSTypes.Place, (typeof placeFields)[number]>>;
 
+    public resetAutocompleteSession(): void;
+
     public getCurrentPlace<K extends keyof GMSTypes.Place>(
       placeFields: K[]
     ): Promise<
@@ -602,6 +604,11 @@ declare module "react-native-google-places" {
     public lookUpPlaceByID<K extends keyof GMSTypes.Place>(
       placeID: string, placeFields: K[]
     ): Promise<Pick<GMSTypes.Place, (typeof placeFields)[number]>>;
+
+    /**
+     * End the active autocomplete interaction without selecting a place.
+     */
+    public resetAutocompleteSession(): void;
 
     /**
      * This method returns to you the place where the device is currently

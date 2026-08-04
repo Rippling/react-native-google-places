@@ -46,6 +46,10 @@ class RNGooglePlaces {
 	    return RNGooglePlacesNative.lookUpPlaceByID(placeID, [...RNGooglePlaces.placeFieldsDefaults, ...placeFields])
 	}
 
+	resetAutocompleteSession() {
+		return RNGooglePlacesNative.resetAutocompleteSession()
+	}
+
 	getCurrentPlace(placeFields = []) {
 		return RNGooglePlacesNative.getCurrentPlace([...RNGooglePlaces.placeFieldsDefaults, ...placeFields])
 	}

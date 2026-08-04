@@ -69,6 +69,8 @@ public class RNGooglePlacesModule extends ReactContextBaseJavaModule implements 
     private List<Place.Field> lastSelectedFields;
     public static final String TAG = "RNGooglePlaces";
     private PlacesClient placesClient;
+    private AutocompleteSessionToken autocompleteSessionToken;
+    private boolean shouldResetAutocompleteSession;
 
     public static int AUTOCOMPLETE_REQUEST_CODE = 360;
     public static String REACT_CLASS = "RNGooglePlaces";
@@ -234,7 +236,19 @@ public class RNGooglePlacesModule extends ReactContextBaseJavaModule implements 
         requestBuilder.setTypeFilter(getFilterType(type));
 
         if (useSessionToken) {
-            requestBuilder.setSessionToken(AutocompleteSessionToken.newInstance());
+            if (shouldResetAutocompleteSession) {
+                autocompleteSessionToken = null;
+                shouldResetAutocompleteSession = false;
+            }
+
+            if (autocompleteSessionToken == null) {
+                autocompleteSessionToken = AutocompleteSessionToken.newInstance();
+            }
+
+            requestBuilder.setSessionToken(autocompleteSessionToken);
+        } else {
+            autocompleteSessionToken = null;
+            shouldResetAutocompleteSession = false;
         }
             
         Task<FindAutocompletePredictionsResponse> task =
@@ -288,8 +302,16 @@ public class RNGooglePlacesModule extends ReactContextBaseJavaModule implements 
         }
         
         List<Place.Field> selectedFields = getPlaceFields(fields.toArrayList(), false);
+        AutocompleteSessionToken sessionToken = autocompleteSessionToken;
+        autocompleteSessionToken = null;
+        shouldResetAutocompleteSession = false;
 
-        FetchPlaceRequest request = FetchPlaceRequest.builder(placeID, selectedFields).build();
+        FetchPlaceRequest.Builder requestBuilder = FetchPlaceRequest.builder(placeID, selectedFields);
+        if (sessionToken != null) {
+            requestBuilder.setSessionToken(sessionToken);
+        }
+
+        FetchPlaceRequest request = requestBuilder.build();
 
         placesClient.fetchPlace(request).addOnSuccessListener((response) -> {
             Place place = response.getPlace();
@@ -299,6 +321,13 @@ public class RNGooglePlacesModule extends ReactContextBaseJavaModule implements 
         }).addOnFailureListener((exception) -> {
             promise.reject("E_PLACE_DETAILS_ERROR", new Error(exception.getMessage()));
         });
+    }
+
+    @ReactMethod
+    public void resetAutocompleteSession() {
+        // Defer clearing the token until the next prediction so a selection and
+        // the search UI dismissal can race without dropping the Place Details token.
+        shouldResetAutocompleteSession = true;
     }
 
     @ReactMethod
