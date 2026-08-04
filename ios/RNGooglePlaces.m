@@ -14,6 +14,8 @@
 
 @property (strong, nonatomic) CLLocationManager *locationManager;
 @property GMSAutocompleteBoundsMode boundsMode;
+@property (strong, nonatomic) GMSAutocompleteSessionToken *autocompleteSessionToken;
+@property (assign, nonatomic) BOOL shouldResetAutocompleteSession;
 
 @end
 
@@ -95,13 +97,24 @@ RCT_EXPORT_METHOD(getAutocompletePredictions: (NSString *)query
     
     GMSCoordinateBounds *autocompleteBounds = [self getBounds:locationBias andRestrictOptions:locationRestriction];
     
-    GMSAutocompleteSessionToken *token = [[GMSAutocompleteSessionToken alloc] init];
+    BOOL useSessionToken = [RCTConvert BOOL:options[@"useSessionToken"]];
+    if (useSessionToken && self.shouldResetAutocompleteSession) {
+        self.autocompleteSessionToken = nil;
+        self.shouldResetAutocompleteSession = NO;
+    }
+    if (useSessionToken && self.autocompleteSessionToken == nil) {
+        self.autocompleteSessionToken = [[GMSAutocompleteSessionToken alloc] init];
+    }
+    if (!useSessionToken) {
+        self.autocompleteSessionToken = nil;
+        self.shouldResetAutocompleteSession = NO;
+    }
     
     [[GMSPlacesClient sharedClient] findAutocompletePredictionsFromQuery:query
                                                bounds:autocompleteBounds
                                                boundsMode:self.boundsMode
                                                filter:autocompleteFilter
-                                               sessionToken:token
+                                               sessionToken:useSessionToken ? self.autocompleteSessionToken : nil
                                              callback:^(NSArray<GMSAutocompletePrediction *> * _Nullable results, NSError *error) {
                                                  if (error != nil) {
                                                      reject(@"E_AUTOCOMPLETE_ERROR", [error description], nil);
@@ -134,8 +147,11 @@ RCT_EXPORT_METHOD(lookUpPlaceByID: (NSString*)placeID
                  rejecter: (RCTPromiseRejectBlock)reject)
 {
     GMSPlaceField selectedFields = [self getSelectedFields:fields isCurrentOrFetchPlace:false];
+    GMSAutocompleteSessionToken *sessionToken = self.autocompleteSessionToken;
+    self.autocompleteSessionToken = nil;
+    self.shouldResetAutocompleteSession = NO;
 
-    [[GMSPlacesClient sharedClient] fetchPlaceFromPlaceID:placeID placeFields:selectedFields sessionToken:nil
+    [[GMSPlacesClient sharedClient] fetchPlaceFromPlaceID:placeID placeFields:selectedFields sessionToken:sessionToken
                                          callback:^(GMSPlace * _Nullable place, NSError * _Nullable error) {
                                              if (error != nil) {
                                                  reject(@"E_PLACE_DETAILS_ERROR", [error localizedDescription], nil);
@@ -148,6 +164,13 @@ RCT_EXPORT_METHOD(lookUpPlaceByID: (NSString*)placeID
                                                  resolve(@{});
                                              }
                                          }];
+}
+
+RCT_EXPORT_METHOD(resetAutocompleteSession)
+{
+    // Defer clearing the token until the next prediction so a selection and
+    // the search UI dismissal can race without dropping the Place Details token.
+    self.shouldResetAutocompleteSession = YES;
 }
 
 RCT_EXPORT_METHOD(getCurrentPlace: (NSArray *)fields
@@ -310,4 +333,3 @@ RCT_EXPORT_METHOD(getCurrentPlace: (NSArray *)fields
 
 
 @end
-

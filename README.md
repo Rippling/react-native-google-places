@@ -270,6 +270,7 @@ To customize autocomplete results as listed for [Android](https://developers.goo
 **OPTIONS**
 - **`type`** _(String)_ - The type of results to return. Can only be one of (`geocode`, `address`, `establishment`, `regions`, and `cities`). *(optional)*
 - **`country`** _(String)_ - Limit results to a specific country using a [ISO 3166-1 Alpha-2 country code](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) (case insensitive). If this is not set, no country filtering will take place. *(optional)*
+- **`useSessionToken`** _(Boolean)_ - Reuse one billing session token across prediction requests and pass it to `lookUpPlaceByID()`. Defaults to `true`. *(optional)*
 - **`locationBias`** _(Object)_ - To bias autocomplete results to a specific geographic region, pass an object (with the keys: `latitudeNE` _(Number)_, `longitudeNE` _(Number)_, `latitudeSW` _(Number)_, `longitudeSW` _(Number)_)  representing the bounding box for the region. *(optional)*
 - **`locationRestriction`** _(Object)_ - To restrict autocomplete results to a specific geographic region, pass an object (with the keys: `latitudeNE` _(Number)_, `longitudeNE` _(Number)_, `latitudeSW` _(Number)_, `longitudeSW` _(Number)_)  representing the bounding box for the region. *(optional)* 
 - **`useOverlay`** _(Boolean)_ [Android Only] - If true, the autocomplete modal will open as an [overlay rather than fullscreen](https://developers.google.com/places/images/acw_overlay.png). Defaults to `false`.
@@ -476,6 +477,14 @@ OR
 #### Design Hint
 The typical use flow would be to call `getAutocompletePredictions()` when the value of your search input changes to populate your suggestion listview and call `lookUpPlaceByID()` to retrieve the place details when a place on your listview is selected.
 
+When the user dismisses the search UI without selecting a prediction, reset the active session before starting another search:
+
+```javascript
+RNGooglePlaces.resetAutocompleteSession();
+```
+
+Google recommends using one session token for the complete autocomplete interaction. A selected place terminates the session automatically when `lookUpPlaceByID()` passes the token to Place Details.
+
 #### PS (from Google)
 - Use of the `getAutocompletePredictions()` method is subject to tiered query limits. See the documentation on [Android](https://developers.google.com/places/android-api/usage) & [iOS](https://developers.google.com/places/ios-api/usage) Usage Limits.
 - Also, your UI must either display a 'Powered by Google' attribution, or appear within a Google-branded map.
@@ -548,6 +557,5 @@ On iOS, ensure you have installed the native dependencies with Cocoapods.
 
 ## License
 The MIT License.
-
 
 
